@@ -1,0 +1,7 @@
+
+config:
+  username: fv
+  email: f.visconte@gmail.com
+
+files:
+  file1: file1path
