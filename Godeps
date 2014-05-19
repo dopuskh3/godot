@@ -1,0 +1,13 @@
+{
+	"ImportPath": "github.com/dopuskh3/godot",
+	"GoVersion": "go1.2.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "gopkg.in/yaml.v1",
+			"Rev": "b0c168ac0cf9493da1f9bb76c34b26ffef940b4a"
+		}
+	]
+}
