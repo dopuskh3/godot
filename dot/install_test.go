@@ -53,3 +53,34 @@ func TestUpdateExistingSymlink(t *testing.T) {
   srcpath2, _ := filepath.Abs(filepath.Join(tdir, "src/config_file2"))
   assert.Equal(t, srcpath2, target)
 }
+
+func TestInstallFiles(t *testing.T) {
+  tdir, _ := ioutil.TempDir("", "godot-test")
+  _ = os.MkdirAll(filepath.Join(tdir, "src"), 0777)
+  _ = os.MkdirAll(filepath.Join(tdir, "dst"), 0777)
+  conf1 := filepath.Join(tdir, "src/conf1")
+  conf2 := filepath.Join(tdir, "src/conf2")
+  ioutil.WriteFile(conf1, []byte("target file content"), 0777)
+  ioutil.WriteFile(conf2, []byte("target file content"), 0777)
+  files := map[string]string{
+    "conf1": "dst/conf1",
+    "conf2": "dst/conf2",
+  }
+  err := InstallFiles(filepath.Join(tdir, "src"), filepath.Join(tdir, "dst"), files)
+  assert.Equal(t, err, nil)
+}
+
+func TestInstallFilesFail(t *testing.T) {
+  tdir, _ := ioutil.TempDir("", "godot-test")
+  _ = os.MkdirAll(filepath.Join(tdir, "src"), 0777)
+  _ = os.MkdirAll(filepath.Join(tdir, "dst"), 0777)
+  conf1 := filepath.Join(tdir, "src/conf1")
+  ioutil.WriteFile(conf1, []byte("target file content"), 0777)
+  files := map[string]string{
+    "conf1":      "dst/conf1",
+    "donotexist": "dst/donotexisttarget",
+  }
+  err := InstallFiles(filepath.Join(tdir, "src"), filepath.Join(tdir, "dst"), files)
+  assert.NotEqual(t, err, nil)
+
+}
