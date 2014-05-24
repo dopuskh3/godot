@@ -1,53 +1,55 @@
 package dot
 
 import (
+  "bytes"
   "fmt"
   "log"
   "os"
   "path/filepath"
+  "time"
 )
 
-func InstallFile(src, dst string) error {
+func backupIfNeeded(file string) error {
+  log.Printf("Will intall %s", file)
+  _, err := os.Lstat(file)
+  if err == nil {
+    suffix := time.Now().Format("200601020304")
+    err = os.Rename(file, fmt.Sprintf("%s.bak-", file, suffix))
+    if err != nil {
+      return err
+    }
+  }
+  return nil
+}
+
+func InstallFile(buffer *bytes.Buffer, dst string) error {
   // prepare target directory
   targetbasename := filepath.Dir(dst)
   err := os.MkdirAll(targetbasename, 0700)
   if err != nil {
     return err
   }
-
-  _, err = os.Stat(src)
-  if err != nil {
-    return err
-  }
-  fi, err := os.Lstat(dst)
+  log.Printf("Will intall %s", dst)
+  _, err = os.Lstat(dst)
   if err == nil {
-    if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
-      log.Printf("Removing symlink %s", dst)
-      os.Remove(dst)
-    } else {
-      err = os.Rename(dst, fmt.Sprintf("%s.bak", dst))
+    err = os.Rename(dst, fmt.Sprintf("%s.bak", dst))
+    if err != nil {
+      return err
     }
   } else {
     err = nil
   }
-  src, err = filepath.Abs(src)
+  log.Printf("Creating %s", dst)
+  fd, err := os.Create(dst)
+  log.Print("Created")
   if err != nil {
     return err
   }
-  log.Printf("Installing %s -> %s", dst, src)
-  err = os.Symlink(src, dst)
-  return nil
-}
-
-func InstallFiles(srcroot, targetroot string, files map[string]string) error {
-
-  for k, v := range files {
-    sourcefile := filepath.Join(srcroot, k)
-    targetfile := filepath.Join(targetroot, v)
-    err := InstallFile(sourcefile, targetfile)
-    if err != nil {
-      return err
-    }
+  defer fd.Close()
+  _, err = buffer.WriteTo(fd)
+  if err != nil {
+    return err
   }
+  log.Printf("%s installed", dst)
   return nil
 }

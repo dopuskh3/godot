@@ -8,6 +8,9 @@ build:
 test:
 	godep go test -race -v `go list ./...` 
 
+run: build
+	./godot
+
 cover:
 	set -x; \
 	mkdir -p ${TMP_COVER_DIR}; \

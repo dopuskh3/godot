@@ -3,7 +3,6 @@ package dot
 import (
   "github.com/bmizerany/assert"
   "io/ioutil"
-  "os"
   "path/filepath"
   "testing"
 )
@@ -15,33 +14,62 @@ config:
 files:
   bar: bazz
 `
+var sample_invalid_config = ` 
+config:
+  foo: bar
+files:
+  /foo/bar: foobar
+`
 
 func TestLoadConfig(t *testing.T) {
-  conf, _ := LoadConfig([]byte(sample_config))
-  t.Logf("%#v", conf)
-  assert.Equal(t, conf.Config["foo"], "bar")
+  td := createTestDir()
+  defer deleteTestDir(td)
+  inFile := filepath.Join(td, "bar")
+  confFile := filepath.Join(td, "conf")
+  ioutil.WriteFile(confFile, []byte(sample_config), 0700)
+  ioutil.WriteFile(inFile, []byte("foobar"), 0700)
+
+  conf, err := LoadConfigFromFile(confFile)
+  assert.NotEqual(t, conf, nil)
+  assert.Equal(t, err, nil)
 }
 
-func TestLoadConfigFromNonExistingFile(t *testing.T) {
-  _, err := LoadConfigFromFile("non-existent-file")
+func TestLoadConfigWithAbsolutePathFail(t *testing.T) {
+  td := createTestDir()
+  defer deleteTestDir(td)
+  confFile := filepath.Join(td, "conf")
+  ioutil.WriteFile(confFile, []byte(sample_invalid_config), 0700)
+
+  conf, err := LoadConfigFromFile(confFile)
+  assert.Equal(t, conf, (*DotConfig)(nil))
   assert.NotEqual(t, err, nil)
 }
 
-func TestLoadInvalidConfig(t *testing.T) {
-  invalidConfig := `
-{ 
-  "asdaidsasd
-asdasdasda--d-adasd
+func TestLoadConfigFailWhenFileDoNotExists(t *testing.T) {
+  td := createTestDir()
+  defer deleteTestDir(td)
+  confFile := filepath.Join(td, "conf")
+  ioutil.WriteFile(confFile, []byte(sample_config), 0700)
+  conf, err := LoadConfigFromFile(confFile)
+  assert.Equal(t, conf, (*DotConfig)(nil))
+  assert.NotEqual(t, err, nil)
+}
+
+func TestLoadInvalidYaml(t *testing.T) {
+  td := createTestDir()
+  defer deleteTestDir(td)
+
+  confFile := filepath.Join(td, "conf")
+  confYaml := `
+  foo: @ bar
   `
-  _, err := LoadConfig([]byte(invalidConfig))
+  ioutil.WriteFile(confFile, []byte(confYaml), 0700)
+  conf, err := LoadConfigFromFile(confFile)
+  assert.Equal(t, conf, (*DotConfig)(nil))
   assert.NotEqual(t, err, nil)
 }
 
-func TestLoadConfigFromFile(t *testing.T) {
-  tdir, _ := ioutil.TempDir("", "godot-test")
-  defer os.RemoveAll(tdir)
-  confpath := filepath.Join(tdir, "conf.yml")
-  ioutil.WriteFile(filepath.Join(tdir, "conf.yml"), []byte(sample_config), 0777)
-  conf, _ := LoadConfigFromFile(confpath)
-  assert.Equal(t, conf.Config["foo"], "bar")
+func TestLoadConfigFailWhenConfigNotExists(t *testing.T) {
+  _, err := LoadConfigFromFile("not-exists")
+  assert.NotEqual(t, err, nil)
 }
