@@ -1,7 +1,6 @@
 package dot
 
 import (
-  "bytes"
   "fmt"
   "github.com/bmizerany/assert"
   "io/ioutil"
@@ -13,9 +12,10 @@ import (
 func TestInstallFile(t *testing.T) {
   td := createTestDir()
   defer deleteTestDir(td)
-  b := bytes.NewBuffer([]byte("foobar"))
+  src := filepath.Join(td, "foo")
+  ioutil.WriteFile(src, []byte("foobar"), 0700)
   target := filepath.Join(td, "baz")
-  err := InstallFile(b, target)
+  err := InstallFile(src, target)
   assert.Equal(t, err, nil)
   _, err = os.Stat(target)
   assert.Equal(t, err, nil)
@@ -44,17 +44,16 @@ func TestBackupWhenFileExists(t *testing.T) {
 func TestInstallFileBackupFile(t *testing.T) {
   td := createTestDir()
   defer deleteTestDir(td)
-
-  b := bytes.NewBuffer([]byte("foobar"))
+  src := filepath.Join(td, "sourcefile")
+  ioutil.WriteFile(src, []byte("foobar"), 0700)
   target := filepath.Join(td, "baz")
   ioutil.WriteFile(target, []byte("already exist"), 0700)
-  err := InstallFile(b, target)
+  err := InstallFile(src, target)
   assert.Equal(t, err, nil)
   _, err = os.Stat(target)
   assert.Equal(t, err, nil)
   content, err := ioutil.ReadFile(target)
   assert.Equal(t, string(content), "foobar")
-
-  _, err = os.Stat(fmt.Sprintf("%s.bak", target))
-  assert.Equal(t, err, nil)
+  files, err := filepath.Glob(fmt.Sprintf("%s.bak-*", target))
+  assert.Equal(t, len(files), 1)
 }

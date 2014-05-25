@@ -9,10 +9,13 @@ import (
 )
 
 type DotConfig struct {
-  Config map[string]string
-  Files  map[string]string
-  Root   string
+  Config     map[string]string
+  Files      map[string]string
+  Root       string
+  CompileDir string
 }
+
+var GODOT_COMPILE_DIR = ".godot"
 
 func LoadConfigFromFile(path string) (*DotConfig, error) {
   fi, err := ioutil.ReadFile(os.ExpandEnv(path))
@@ -28,6 +31,7 @@ func LoadConfigFromFile(path string) (*DotConfig, error) {
     return nil, err
   }
   conf.Root = filepath.Dir(absPath)
+  conf.CompileDir = filepath.Join(conf.Root, GODOT_COMPILE_DIR)
   err = validateConfig(conf)
   if err != nil {
     return nil, err

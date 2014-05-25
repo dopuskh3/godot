@@ -1,7 +1,6 @@
 package dot
 
 import (
-  "bytes"
   "fmt"
   "log"
   "os"
@@ -10,11 +9,10 @@ import (
 )
 
 func backupIfNeeded(file string) error {
-  log.Printf("Will intall %s", file)
   _, err := os.Lstat(file)
   if err == nil {
     suffix := time.Now().Format("200601020304")
-    err = os.Rename(file, fmt.Sprintf("%s.bak-", file, suffix))
+    err = os.Rename(file, fmt.Sprintf("%s.bak-%s", file, suffix))
     if err != nil {
       return err
     }
@@ -22,34 +20,40 @@ func backupIfNeeded(file string) error {
   return nil
 }
 
-func InstallFile(buffer *bytes.Buffer, dst string) error {
+func InstallFile(src string, dst string) error {
   // prepare target directory
   targetbasename := filepath.Dir(dst)
   err := os.MkdirAll(targetbasename, 0700)
   if err != nil {
     return err
   }
-  log.Printf("Will intall %s", dst)
-  _, err = os.Lstat(dst)
-  if err == nil {
-    err = os.Rename(dst, fmt.Sprintf("%s.bak", dst))
+  err = backupIfNeeded(dst)
+  if err != nil {
+    return err
+  }
+  abssrc, err := filepath.Abs(src)
+  if err != nil {
+    return err
+  }
+  err = os.Symlink(abssrc, dst)
+  if err != nil {
+    return err
+  }
+  log.Printf("%s -> %s installed", src, dst)
+  return nil
+}
+
+func InstallDotFiles(conf *DotConfig, target string) error {
+
+  for src, dst := range conf.Files {
+    relsrc, err := filepath.Rel(conf.Root, src)
     if err != nil {
       return err
     }
-  } else {
-    err = nil
+    compiledsrc := filepath.Join(conf.CompileDir, relsrc)
+    fullTarget := filepath.Join(target, dst)
+    InstallFile(compiledsrc, fullTarget)
+
   }
-  log.Printf("Creating %s", dst)
-  fd, err := os.Create(dst)
-  log.Print("Created")
-  if err != nil {
-    return err
-  }
-  defer fd.Close()
-  _, err = buffer.WriteTo(fd)
-  if err != nil {
-    return err
-  }
-  log.Printf("%s installed", dst)
   return nil
 }

@@ -3,33 +3,27 @@ package main
 import (
   "github.com/dopuskh3/godot/dot"
   "log"
-  "os"
 )
 
 var DEFAULT_CONFIG = "godot.yml"
-var COMPILE_OUTPUT_DIR = ".godot"
-var INSTALL_DIRECTORY = os.ExpandEnv("$HOME")
 
-func main() {
-  conf, err := dot.LoadConfigFromFile("godot.yml")
+func Update() error {
+  conf, err := dot.LoadConfigFromFile(DEFAULT_CONFIG)
   if err != nil {
     log.Fatalf("Cannot load config file %s: %s", DEFAULT_CONFIG, err)
-  } else {
-    log.Printf("Loaded %s", DEFAULT_CONFIG)
   }
-  log.Printf("%#v", conf)
-  log.Print("config root: ", conf.Root)
-  err = dot.TemplatizeAll(conf.Root, "out", conf.Config)
+  err = dot.TemplatizeAll("./", conf.CompileDir, conf.Config)
   if err != nil {
-    log.Fatal(err)
+    log.Fatalf("Cannot compile templates: %s", err)
+    return err
   }
-  /*
-     done, err := dot.WatchDir("./", "out", conf.Files)
-     if err != nil {
-       log.Fatal(err)
-       done <- true
-     }
-     <-done
-  */
+  err = dot.InstallDotFiles(conf, ".installdir")
+  if err != nil {
+    log.Fatalf("Cannot install: %s", err)
+  }
+  return nil
+}
 
+func main() {
+  Update()
 }

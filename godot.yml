@@ -5,3 +5,4 @@ config:
 
 files:
   file1: file1path
+  file2: foo/bar/bazz/prout

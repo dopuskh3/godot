@@ -1,36 +1,37 @@
 package dot
 
 import (
-  "bytes"
-  "io"
   "log"
   "os"
   "path/filepath"
   "text/template"
 )
 
-func Templatize(inpath string, vars map[string]string) (*bytes.Buffer, error) {
-  var buffer bytes.Buffer
+func Templatize(inpath string, outpath string, vars map[string]string) error {
   tpl, err := template.ParseFiles(inpath)
   if err != nil {
-    log.Printf("Warning: Can't parce %s template. Installing it anyway.")
-    f, err := os.Open(inpath)
-    defer f.Close()
-    if err != nil {
-      return nil, err
+    log.Printf("Warning: Can't parse %s template..", inpath)
+    _, err = os.Stat(outpath)
+    if err == nil {
+      os.Remove(outpath)
     }
-    io.Copy(&buffer, f)
-    return &buffer, nil
+    err := os.Link(inpath, outpath)
+    if err != nil {
+      return err
+    }
+    return nil
   }
-  err = tpl.Execute(&buffer, vars)
+  f, err := os.Create(outpath)
+  defer f.Close()
+  err = tpl.Execute(f, vars)
   if err != nil {
-    return nil, err
+    return err
   }
-  return &buffer, nil
+  return nil
 }
 
-func TemplatizeAll(root string, output string, vars map[string]string) error {
-  x := func(path string, f os.FileInfo, err error) error {
+func TemplatizeAll(input string, output string, vars map[string]string) error {
+  install := func(path string, f os.FileInfo, err error) error {
     if f.IsDir() && f.Name() != "." && f.Name()[0:1] == "." {
       log.Printf("Skipping %s", path)
       return filepath.SkipDir
@@ -38,22 +39,18 @@ func TemplatizeAll(root string, output string, vars map[string]string) error {
     if !f.IsDir() && f.Name()[0:1] != "." {
       outdir := filepath.Join(output, filepath.Dir(path))
       outfile := filepath.Join(outdir, f.Name())
-      log.Printf("Creating %s", outdir)
       err = os.MkdirAll(outdir, 0770)
       if err != nil {
         return err
       }
-      buff, err := Templatize(path, vars)
-      if err != nil {
-        return err
-      }
-      err = InstallFile(buff, outfile)
+      err := Templatize(path, outfile, vars)
+      log.Printf("Compiled %s", outfile)
       if err != nil {
         return err
       }
     }
     return nil
   }
-  err := filepath.Walk(root, x)
+  err := filepath.Walk(input, install)
   return err
 }
