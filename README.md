@@ -5,11 +5,3 @@
 GoDot
 =====
 
-Go dot is a very simple dot-file management tool.
-
-Here are some key feature:
-
-- templatize config files
-- able to watch directory and re-generate configuration file on the fly
-
-

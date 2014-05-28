@@ -3,6 +3,7 @@ package main
 import (
   "github.com/dopuskh3/godot/dot"
   "log"
+  "os"
 )
 
 var DEFAULT_CONFIG = "godot.yml"
@@ -25,5 +26,16 @@ func Update() error {
 }
 
 func main() {
-  Update()
+  log.Print(os.Args)
+  if len(os.Args) < 2 {
+    Update()
+  } else {
+    if os.Args[1] == "watch" {
+      done, err := dot.WatchDir("./")
+      if err != nil {
+        log.Fatalf("Can't watch directory %s", err)
+      }
+      <-done
+    }
+  }
 }
